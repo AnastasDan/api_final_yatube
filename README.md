@@ -41,3 +41,6 @@ python manage.py migrate
 ```
 python manage.py runserver
 ```
+### Где посмотреть примеры запросов к API:
+
+http://127.0.0.1:8000/redoc/
