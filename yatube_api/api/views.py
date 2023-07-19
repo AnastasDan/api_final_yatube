@@ -1,7 +1,10 @@
+from typing import Optional
+
 from django.db.models.query import QuerySet
 from django.shortcuts import get_object_or_404
 
-from rest_framework import filters, mixins, permissions, viewsets
+from rest_framework import filters, mixins, viewsets
+from rest_framework.filters import BaseFilterBackend
 from rest_framework.pagination import LimitOffsetPagination
 
 from posts.models import Comment, Follow, Group, Post, User
@@ -11,7 +14,7 @@ from .serializers import (
     CommentSerializer,
     FollowSerializer,
     GroupsSerializer,
-    PostSerializer
+    PostSerializer,
 )
 
 
@@ -21,11 +24,7 @@ class PostViewSet(viewsets.ModelViewSet):
     queryset: QuerySet[Post] = Post.objects.all()
     serializer_class: type[PostSerializer] = PostSerializer
     pagination_class: type[LimitOffsetPagination] = LimitOffsetPagination
-    permission_classes: tuple[
-        type[permissions.BasePermission],
-        type[OwnerOnlyPermission]
-    ] = (
-        permissions.IsAuthenticatedOrReadOnly,
+    permission_classes: tuple[type[OwnerOnlyPermission]] = (
         OwnerOnlyPermission,
     )
 
@@ -38,17 +37,13 @@ class CommentViewSet(viewsets.ModelViewSet):
     """Представление для работы с моделью Comment."""
 
     serializer_class: type[CommentSerializer] = CommentSerializer
-    permission_classes: tuple[
-        type[permissions.BasePermission],
-        type[OwnerOnlyPermission]
-    ] = (
-        permissions.IsAuthenticatedOrReadOnly,
+    permission_classes: tuple[type[OwnerOnlyPermission]] = (
         OwnerOnlyPermission,
     )
 
     def get_queryset(self) -> QuerySet[Comment]:
         """Возвращает запрос для получения комментариев конкретного поста."""
-        post_id: int = self.kwargs.get('post_id')
+        post_id: Optional[int] = self.kwargs.get("post_id")
         post: Post = get_object_or_404(Post, pk=post_id)
         return post.comments
 
@@ -58,7 +53,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
         Сохраняет ссылку на указанный пост.
         """
-        post_id: int = self.kwargs.get('post_id')
+        post_id: Optional[int] = self.kwargs.get("post_id")
         author: User = self.request.user
         post: Post = get_object_or_404(Post, pk=post_id)
         serializer.save(author=author, post=post)
@@ -81,10 +76,8 @@ class FollowViewSet(
 
     queryset: QuerySet[Follow] = Follow.objects.all()
     serializer_class: type[FollowSerializer] = FollowSerializer
-    filter_backends: type[type[filters.BaseFilterBackend]] = (
-        filters.SearchFilter,
-    )
-    search_fields: tuple[str] = ('user__username', 'following__username')
+    filter_backends: tuple[type[BaseFilterBackend]] = (filters.SearchFilter,)
+    search_fields: tuple[str, str] = ("user__username", "following__username")
 
     def get_queryset(self) -> QuerySet[Follow]:
         """Возвращает объекты Follow, относящихся к данному пользователю."""
